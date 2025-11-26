@@ -306,7 +306,7 @@ class GWRAnalysisDialog(QDialog):
             config.write(f)
 
     def choose_r_path(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Sélectionnez Rscript.exe", "", "Rscript.exe (Rscript.exe)")
+        path, _ = QFileDialog.getOpenFileName(self, "Sélectionnez Rscript", "", "")
         if path:
             self.r_path = path
             self.r_path_label.setText(path)
@@ -584,7 +584,7 @@ class MGWRAnalysisDialog(QDialog):
             config.write(f)
 
     def choose_r_path(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Sélectionnez Rscript.exe", "", "Rscript.exe (Rscript.exe)")
+        path, _ = QFileDialog.getOpenFileName(self, "Sélectionnez Rscript", "", "")
         if path:
             self.r_path = path
             self.r_path_label.setText(path)
@@ -849,7 +849,7 @@ class LISAAnalysisDialog(QDialog):
             config.write(f)
 
     def choose_r_path(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Sélectionnez Rscript.exe", "", "Rscript.exe (Rscript.exe)")
+        path, _ = QFileDialog.getOpenFileName(self, "Sélectionnez Rscript", "", "")
         if path:
             self.r_path = path
             self.r_path_label.setText(path)
