@@ -157,10 +157,10 @@ class GWRAnalysisDialog(QDialog):
         layout = QVBoxLayout()
 
         # Chemin Rscript
-        layout.addWidget(QLabel("Chemin vers Rscript.exe :"))
+        layout.addWidget(QLabel("Chemin vers Rscript :"))
         path_layout = QHBoxLayout()
         self.r_path_label = QLabel(self.r_path if self.r_path else "(non défini)")
-        self.choose_r_path_button = QPushButton("Sélectionner Rscript.exe")
+        self.choose_r_path_button = QPushButton("Sélectionner Rscript")
         self.choose_r_path_button.clicked.connect(self.choose_r_path)
         path_layout.addWidget(self.r_path_label)
         path_layout.addWidget(self.choose_r_path_button)
@@ -433,10 +433,10 @@ class MGWRAnalysisDialog(QDialog):
         layout = QVBoxLayout()
 
         # Chemin Rscript
-        layout.addWidget(QLabel("Chemin vers Rscript.exe :"))
+        layout.addWidget(QLabel("Chemin vers Rscript :"))
         path_layout = QHBoxLayout()
         self.r_path_label = QLabel(self.r_path if self.r_path else "(non défini)")
-        self.choose_r_path_button = QPushButton("Sélectionner Rscript.exe")
+        self.choose_r_path_button = QPushButton("Sélectionner Rscript")
         self.choose_r_path_button.clicked.connect(self.choose_r_path)
         path_layout.addWidget(self.r_path_label)
         path_layout.addWidget(self.choose_r_path_button)
@@ -709,10 +709,10 @@ class LISAAnalysisDialog(QDialog):
         layout = QVBoxLayout()
 
         # Chemin Rscript
-        layout.addWidget(QLabel("Chemin vers Rscript.exe :"))
+        layout.addWidget(QLabel("Chemin vers Rscript :"))
         path_layout = QHBoxLayout()
         self.r_path_label = QLabel(self.r_path if self.r_path else "(non défini)")
-        self.choose_r_path_button = QPushButton("Sélectionner Rscript.exe")
+        self.choose_r_path_button = QPushButton("Sélectionner Rscript")
         self.choose_r_path_button.clicked.connect(self.choose_r_path)
         path_layout.addWidget(self.r_path_label)
         path_layout.addWidget(self.choose_r_path_button)
