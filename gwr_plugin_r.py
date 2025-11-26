@@ -30,7 +30,6 @@ from qgis.core import (
 
 import subprocess
 import os
-import tempfile
 import shutil
 import configparser
 
@@ -1154,6 +1153,12 @@ class GWRPlugin:
             )
         
         QMessageBox.information(None, "Succès", success_msg)
+
+        # Supprimer les fichiers temporaires
+        src_file = result_layer.dataProvider().dataSourceUri()
+        folder = os.path.dirname(src_file)
+        print(f"removing folder {folder}")
+        shutil.rmtree(folder)
         
         # Afficher des infos dans la console
         print(f"\n=== RÉSULTATS {model_type} ===")

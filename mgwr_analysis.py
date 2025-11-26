@@ -460,8 +460,3 @@ tryCatch({{
             return None, "L'analyse a dépassé le temps limite (60 minutes)"
         except Exception as e:
             return None, f"Erreur: {str(e)}"
-        finally:
-            try:
-                shutil.rmtree(temp_dir)
-            except:
-                pass
