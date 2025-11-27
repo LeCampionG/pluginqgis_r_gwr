@@ -1023,7 +1023,7 @@ class GWRPlugin:
             progress.show()
 
             # Appel du module GWR séparé
-            result_layer, message = GWRAnalysisModule.run_analysis(
+            result_layer, message, temp_folder = GWRAnalysisModule.run_analysis(
                 r_path, layer, dependent_var, independent_vars, kernel_type,
                 bandwidth_type, bandwidth_value, adaptive, neighbors, standardize, robust
             )
