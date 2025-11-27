@@ -16,7 +16,6 @@ from qgis.core import (
 import subprocess
 import os
 import tempfile
-import shutil
 
 
 class LISAAnalysisModule:
