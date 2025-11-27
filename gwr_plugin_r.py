@@ -1065,7 +1065,7 @@ class GWRPlugin:
             progress.show()
 
             # Appel du module MGWR séparé
-            result_layer, message = MGWRAnalysisModule.run_analysis(
+            result_layer, message, temp_folder = MGWRAnalysisModule.run_analysis(
                 r_path, layer, dependent_var, independent_vars, kernel_type,
                 adaptive, standardize, criterion, max_iter, tolerance
             )
@@ -1113,7 +1113,7 @@ class GWRPlugin:
 
             try:
                 # Appel du module LISA séparé - SANS permutations
-                result_layer, message = LISAAnalysisModule.run_analysis(
+                result_layer, message, temp_folder = LISAAnalysisModule.run_analysis(
                     r_path, layer, analysis_type, variable, variable2,
                     contiguity_type, order, standardize_weights,
                     significance, standardize_var
@@ -1193,12 +1193,7 @@ class GWRPlugin:
         
         QMessageBox.information(None, "Succès", success_msg)
 
-        # Supprimer les fichiers temporaires
-        src_file = result_layer.dataProvider().dataSourceUri()
-        folder = os.path.dirname(src_file)
-        print(f"removing folder {folder}")
-        shutil.rmtree(folder)
-        
+  
         # Afficher des infos dans la console
         print(f"\n=== RÉSULTATS {model_type} ===")
         print(f"✓ Nouvelle couche créée: {memory_layer.name()}")
