@@ -408,7 +408,7 @@ cat("\\n=== ANALYSE TERMINEE AVEC SUCCES ===\\n")
             if not result_layer.isValid():
                 return None, "Erreur lors du chargement des résultats"
 
-            return result_layer, result.stdout
+            return result_layer, result.stdout, temp_dir
 
         except subprocess.TimeoutExpired:
             return None, "L'analyse a dépassé le temps limite (30 minutes)"

@@ -1031,7 +1031,7 @@ class GWRPlugin:
             progress.close()
 
             if result_layer:
-                self.process_results(result_layer, layer, message, "GWR")
+                self.process_results(result_layer, layer, message, "GWR", temp_folder)
             else:
                 QMessageBox.critical(None, "Erreur GWR", message)
     
@@ -1133,26 +1133,62 @@ class GWRPlugin:
                 QMessageBox.critical(None, "Erreur LISA", error_msg)
                 print(error_msg)
     
-    def process_results(self, result_layer, original_layer, message, model_type):
+    def process_results(self, result_layer, original_layer, message, model_type, temp_folder):
         """Traite les résultats (commun à GWR, MGWR et LISA) - VERSION SANS MODIFICATION DE LA COUCHE ORIGINALE"""
         
-        # Simplement ajouter la couche de résultats au projet, SANS modifier l'originale
-        result_layer.setName(f"{original_layer.name()}_{model_type}")
-        QgsProject.instance().addMapLayer(result_layer)
+        # IMPORTANT: Cloner la couche en mémoire pour libérer les fichiers temporaires
+        # Nom de la nouvelle couche
+        layer_name = f"{original_layer.name()}_{model_type}"
+        
+        # Créer une URI pour une couche en mémoire
+        geom_type = result_layer.geometryType()
+        geom_type_str = {0: "Point", 1: "LineString", 2: "Polygon", 3: "Unknown", 4: "NoGeometry"}
+        geom_str = geom_type_str.get(geom_type, "Point")
+        
+        crs = result_layer.crs().authid()
+        uri = f"{geom_str}?crs={crs}"
+        
+        # Créer la couche en mémoire
+        memory_layer = QgsVectorLayer(uri, layer_name, "memory")
+        memory_provider = memory_layer.dataProvider()
+        
+        # Copier les champs
+        memory_provider.addAttributes(result_layer.fields())
+        memory_layer.updateFields()
+        
+        # Copier les entités
+        features = list(result_layer.getFeatures())
+        memory_provider.addFeatures(features)
+        
+        # Ajouter la couche en mémoire au projet
+        QgsProject.instance().addMapLayer(memory_layer)
+        
+        # Maintenant on peut supprimer les fichiers temporaires en toute sécurité
+        try:
+            # Forcer la fermeture de la couche temporaire
+            result_layer = None
+            
+            # Supprimer le dossier temporaire
+            if temp_folder and os.path.exists(temp_folder):
+                print(f"Suppression du dossier temporaire: {temp_folder}")
+                shutil.rmtree(temp_folder, ignore_errors=True)
+        except Exception as e:
+            print(f"Avertissement: Impossible de supprimer le dossier temporaire: {e}")
+            print("Le dossier sera supprimé automatiquement par le système")
         
         # Message de succès simple
         success_msg = (
             f"Analyse {model_type} terminée avec succès!\n\n"
-            f"Une nouvelle couche '{result_layer.name()}' a été créée avec les résultats.\n"
+            f"Une nouvelle couche '{memory_layer.name()}' a été créée avec les résultats.\n"
             f"La couche originale '{original_layer.name()}' n'a pas été modifiée."
         )
         
         # Vérifier si le nombre d'entités diffère
-        if result_layer.featureCount() != original_layer.featureCount():
+        if memory_layer.featureCount() != original_layer.featureCount():
             success_msg += (
                 f"\n\n⚠ Attention: Le nombre d'entités diffère:\n"
                 f"• Couche originale: {original_layer.featureCount()}\n"
-                f"• Résultats {model_type}: {result_layer.featureCount()}"
+                f"• Résultats {model_type}: {memory_layer.featureCount()}"
             )
         
         QMessageBox.information(None, "Succès", success_msg)
@@ -1165,14 +1201,14 @@ class GWRPlugin:
         
         # Afficher des infos dans la console
         print(f"\n=== RÉSULTATS {model_type} ===")
-        print(f"✓ Nouvelle couche créée: {result_layer.name()}")
-        print(f"✓ Nombre d'entités: {result_layer.featureCount()}")
-        print(f"✓ Nombre de champs: {len(result_layer.fields())}")
+        print(f"✓ Nouvelle couche créée: {memory_layer.name()}")
+        print(f"✓ Nombre d'entités: {memory_layer.featureCount()}")
+        print(f"✓ Nombre de champs: {len(memory_layer.fields())}")
         print(f"✓ Couche originale '{original_layer.name()}' préservée")
         
         # Lister les champs de résultats
         prefix = f"{model_type}_"
-        result_fields = [f.name() for f in result_layer.fields() if f.name().startswith(prefix)]
+        result_fields = [f.name() for f in memory_layer.fields() if f.name().startswith(prefix)]
         if result_fields:
             print(f"✓ Champs de résultats ajoutés ({len(result_fields)}):")
             for field_name in result_fields[:10]:  # Afficher max 10
