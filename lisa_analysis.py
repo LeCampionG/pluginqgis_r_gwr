@@ -435,8 +435,3 @@ cat("\\n=== ANALYSE LISA TERMINEE AVEC SUCCES ===\\n")
             return None, "L'analyse a dépassé le temps limite (10 minutes)"
         except Exception as e:
             return None, f"Erreur: {str(e)}"
-        finally:
-            try:
-                shutil.rmtree(temp_dir)
-            except:
-                pass
