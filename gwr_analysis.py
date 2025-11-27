@@ -117,15 +117,25 @@ class GWRAnalysisModule:
         del writer
         
         return True, None
-    
+
     @staticmethod
-    def write_r_script_to_file(script_path, shapefile_path, output_path, dependent_var, independent_vars,
-                               kernel_name, approach, adaptive, bandwidth_value, neighbors, standardize, robust):
+    def write_args(
+        shapefile_path: str,
+        output_path: str,
+        dependent_var: str,
+        independent_vars: list[str],
+        kernel_name: str,
+        approach: str|None,
+        adaptive: bool,
+        bandwidth_value: int,
+        neighbors: int,
+        standardize: bool,
+        robust: bool,
+    ) -> list[str]:
         """
         Écrit le script R dans un fichier
-        
+
         Args:
-            script_path: Où écrire le script R
             shapefile_path: Chemin du shapefile d'entrée
             output_path: Chemin du shapefile de sortie
             dependent_var: Nom de la variable dépendante
@@ -134,184 +144,46 @@ class GWRAnalysisModule:
             approach: Méthode de calcul de bande passante ("CV", "AIC", ou None)
             adaptive: True si bande passante adaptative
             bandwidth_value: Valeur manuelle de la bande passante
-            neighbors: Nombre de voisins (si adaptive=True et si Bandwith_value renseigner)
+            neighbors: Nombre de voisins (si adaptive=True et si bandwith_value renseignée)
             standardize: True pour standardiser les variables
             robust: True pour utiliser gwr.robust
         """
-        
-        # Convertir les chemins Windows en format R
+        # Convertir les chemins en format lisible par R
         shapefile_path = shapefile_path.replace("\\", "/")
         output_path = output_path.replace("\\", "/")
-        
-        formula_vars = ' + '.join(independent_vars)
-        
-        if standardize:
-            vars_list = ', '.join([f'"{v}"' for v in [dependent_var] + independent_vars])
-            standardize_code = f"""
-# Standardisation des variables sur une COPIE
-vars_to_scale <- c({vars_list})
-sp_data_work <- sp_data
-for (var in vars_to_scale) {{
-  if (var %in% names(sp_data_work@data)) {{
-    sp_data_work@data[[var]] <- as.numeric(scale(sp_data_work@data[[var]]))
-  }}
-}}
-"""
-        else:
-            standardize_code = """
-# Pas de standardisation - créer une copie de travail
-sp_data_work <- sp_data
-"""
-        
-        if approach:
-            bandwidth_code = f"""
-# Calcul de la bande passante optimale par {approach}
-cat("Calcul de la bande passante optimale en cours...\\n")
-bw <- bw.gwr(formula = formula,
-             data = sp_data_work,
-             approach = "{approach}",
-             kernel = "{kernel_name}",
-             adaptive = {str(adaptive).upper()},
-             p = 2,
-             longlat = FALSE)
-cat(sprintf("Bande passante optimale ({approach}): %.4f\\n", bw))
-"""
-        else:
-            if adaptive:
-                bw_value = neighbors
-            else:
-                bw_value = bandwidth_value
-            bandwidth_code = f"""
-# Bande passante manuelle
-bw <- {bw_value}
-cat(sprintf("Bande passante utilisée: %.4f\\n", bw))
-"""
-        
-        gwr_function = "gwr.robust" if robust else "gwr.basic"
-        
-        script_content = f"""
-# Suppression des warnings
-options(warn = -1)
 
-# Chargement des bibliothèques
-suppressPackageStartupMessages({{
-  library(GWmodel)
-  library(sp)
-  library(sf)
-}})
+        # Mettre une string vide si approach est None
+        approach = "None" if not approach else approach
 
-cat("=== DEBUT DE L'ANALYSE GWR ===\\n\\n")
+        # Convertir X en string
+        independent_vars = ",".join(independent_vars)
 
-# Lecture des données
-cat("Lecture des données...\\n")
-sf_data <- st_read("{shapefile_path}", quiet=TRUE)
-cat(sprintf("Nombre d'entités: %d\\n", nrow(sf_data)))
-cat(sprintf("Nombre de colonnes: %d\\n", ncol(sf_data)))
+        # Créer la liste des arguments.
+        # WARN: l'ordre importe.
+        args = [shapefile_path, output_path, dependent_var, independent_vars,
+                kernel_name, approach, adaptive, bandwidth_value, neighbors,
+                standardize, robust]
+        # Convertir les bool en int
+        args = [int(x) if isinstance(x, int) else x for x in args]
+        # Convertir l'ensemble en string
+        args = [str(v) for v in args]
 
-# Vérification des variables
-cat("\\nVérification des variables...\\n")
-required_vars <- c("{dependent_var}", {', '.join([f'"{v}"' for v in independent_vars])})
-missing_vars <- required_vars[!required_vars %in% names(sf_data)]
-
-if (length(missing_vars) > 0) {{
-  stop(paste("Variables manquantes:", paste(missing_vars, collapse=", ")))
-}}
-
-cat("Toutes les variables sont présentes\\n")
-
-# Conversion en Spatial
-cat("\\nConversion en objet Spatial...\\n")
-sp_data <- as(sf_data, "Spatial")
-
-{standardize_code}
-
-# Formule
-formula <- {dependent_var} ~ {formula_vars}
-cat(sprintf("\\nFormule: %s\\n", deparse(formula)))
-
-# Vérification des NA
-cat("\\nVérification des valeurs manquantes...\\n")
-for (var in required_vars) {{
-  n_na <- sum(is.na(sp_data_work@data[[var]]))
-  if (n_na > 0) {{
-    cat(sprintf("ATTENTION: %d valeurs manquantes pour %s\\n", n_na, var))
-  }}
-}}
-
-# Suppression des lignes avec NA
-complete_cases <- complete.cases(sp_data_work@data[, required_vars])
-if (sum(!complete_cases) > 0) {{
-  cat(sprintf("Suppression de %d lignes avec valeurs manquantes\\n", sum(!complete_cases)))
-  sp_data_work <- sp_data_work[complete_cases, ]
-  sf_data <- sf_data[complete_cases, ]
-}}
-
-{bandwidth_code}
-
-# Régression OLS globale
-cat("\\n=== REGRESSION OLS GLOBALE ===\\n")
-ols_model <- lm(formula, data=sp_data_work@data)
-print(summary(ols_model))
-
-# Calcul de la GWR
-cat("\\n=== REGRESSION GWR ===\\n")
-cat("Calcul en cours (peut prendre plusieurs minutes)...\\n")
-
-gwr_model <- {gwr_function}(formula = formula,
-                             data = sp_data_work,
-                             bw = bw,
-                             kernel = "{kernel_name}",
-                             adaptive = {str(adaptive).upper()},
-                             p = 2,
-                             longlat = FALSE)
-
-print(gwr_model)
-
-# Extraction des résultats
-cat("\\n=== EXTRACTION DES RESULTATS ===\\n")
-gwr_sdf <- gwr_model$SDF
-
-# Préparation des données de sortie - COPIE PROPRE de sf_data d'origine
-result_sf <- sf_data
-result_sf$GWR_yhat <- gwr_sdf$yhat
-result_sf$GWR_residual <- gwr_sdf$residual
-result_sf$GWR_localR2 <- gwr_sdf$Local_R2
-
-# Ajout des coefficients locaux
-coef_cols <- grep("^(?!yhat|residual|Local_R2|sum\\\\.w|gwr\\\\.e)", 
-                  names(gwr_sdf@data), 
-                  perl=TRUE, 
-                  value=TRUE)
-
-for (col in coef_cols) {{
-  new_name <- paste0("GWR_", col)
-  result_sf[[new_name]] <- gwr_sdf@data[[col]]
-}}
-
-# Statistiques de diagnostic
-cat("\\n=== STATISTIQUES DE DIAGNOSTIC ===\\n")
-cat(sprintf("AIC Global OLS: %.2f\\n", AIC(ols_model)))
-cat(sprintf("AIC GWR: %.2f\\n", gwr_model$GW.diagnostic$AICc))
-cat(sprintf("R² Global OLS: %.4f\\n", summary(ols_model)$r.squared))
-cat(sprintf("R² moyen GWR: %.4f\\n", mean(result_sf$GWR_localR2, na.rm=TRUE)))
-cat(sprintf("R² médian GWR: %.4f\\n", median(result_sf$GWR_localR2, na.rm=TRUE)))
-cat(sprintf("R² min GWR: %.4f\\n", min(result_sf$GWR_localR2, na.rm=TRUE)))
-cat(sprintf("R² max GWR: %.4f\\n", max(result_sf$GWR_localR2, na.rm=TRUE)))
-
-# Sauvegarde
-cat("\\nSauvegarde des résultats...\\n")
-st_write(result_sf, "{output_path}", delete_dsn=TRUE, quiet=TRUE)
-
-cat("\\n=== ANALYSE TERMINEE AVEC SUCCES ===\\n")
-"""
-        
-        with open(script_path, 'w', encoding='utf-8') as f:
-            f.write(script_content)
+        return args
 
     @staticmethod
-    def run_analysis(r_path, layer, dependent_var, independent_vars, kernel_type,
-                    bandwidth_type, bandwidth_value, adaptive, neighbors,
-                    standardize, robust):
+    def run_analysis(
+        r_path,
+        layer,
+        dependent_var,
+        independent_vars,
+        kernel_type,
+        bandwidth_type,
+        bandwidth_value,
+        adaptive,
+        neighbors,
+        standardize,
+        robust,
+    ):
         """
         Exécute l'analyse GWR avec R
         
@@ -334,13 +206,15 @@ cat("\\n=== ANALYSE TERMINEE AVEC SUCCES ===\\n")
         temp_dir = tempfile.mkdtemp()
         input_shp = os.path.join(temp_dir, "input.shp")
         output_shp = os.path.join(temp_dir, "output.shp")
-        script_path = os.path.join(temp_dir, "gwr_analysis.R")
+
+        # Le chemin vers le script R responsable de la GWR
+        r_script = os.path.join(os.path.dirname(__file__), "r_scripts/gwr.R")
 
         try:
             # Créer un mapping sécurisé des noms de champs
             all_selected_fields = [dependent_var] + independent_vars
             field_mapping = GWRAnalysisModule.create_safe_field_mapping(
-                layer.fields(), 
+                layer.fields(),
                 all_selected_fields
             )
             
@@ -385,15 +259,24 @@ cat("\\n=== ANALYSE TERMINEE AVEC SUCCES ===\\n")
             }
             kernel_name = kernel_names.get(kernel_type, "gaussian")
 
-            # Créer le script R
-            GWRAnalysisModule.write_r_script_to_file(
-                script_path, input_shp, output_shp, dependent_var_shp, independent_vars_shp,
-                kernel_name, approach, adaptive, bandwidth_value, neighbors, standardize, robust
+            # Write arguments
+            cmd_args = GWRAnalysisModule.write_args(
+                input_shp,
+                output_shp,
+                dependent_var_shp,
+                independent_vars_shp,
+                kernel_name,
+                approach,
+                adaptive,
+                bandwidth_value,
+                neighbors,
+                standardize,
+                robust,
             )
 
             # Exécuter le script R
             result = subprocess.run(
-                [r_path, script_path],
+                [r_path, r_script] + cmd_args,
                 capture_output=True,
                 text=True,
                 timeout=1800  # 30 minutes
