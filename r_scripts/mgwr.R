@@ -1,6 +1,6 @@
 ################################################################################
 # Script Name: mgwr.R
-# Description: Fait tourner une GWR avec les paramètres fournis en entrée
+# Description: Fait tourner une MGWR avec les paramètres fournis en entrée
 # Author: Grégoire Le Campion, Antoine Le Doeuff
 # Date created: 2025-11-26
 ################################################################################
