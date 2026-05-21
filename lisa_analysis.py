@@ -79,12 +79,16 @@ class LISAAnalysisModule:
         Returns:
             tuple: (success, error_message)
         """
+        # On exclut le champ 'fid' : QGIS l'expose pour les GeoPackages, mais
+        # c'est un nom reserve a la cle primaire qui fait echouer l'ecriture
+        # GeoPackage en sortie. GDAL regenere cette cle automatiquement.
+        export_fields = [f for f in layer.fields() if f.name().lower() != "fid"]
+        
         new_fields = QgsFields()
-        for field in layer.fields():
+        for field in export_fields:
             new_field = QgsField(field)
-            original_name = field.name()
-            if original_name in field_mapping:
-                new_field.setName(field_mapping[original_name])
+            if field.name() in field_mapping:
+                new_field.setName(field_mapping[field.name()])
             new_fields.append(new_field)
         
         save_options = QgsVectorFileWriter.SaveVectorOptions()
@@ -107,7 +111,7 @@ class LISAAnalysisModule:
             new_feature = QgsFeature(new_fields)
             new_feature.setGeometry(feature.geometry())
             
-            for i, field in enumerate(layer.fields()):
+            for i, field in enumerate(export_fields):
                 new_feature.setAttribute(i, feature.attribute(field.name()))
             
             writer.addFeature(new_feature)
@@ -369,7 +373,7 @@ cat("\\n=== ANALYSE LISA TERMINEE AVEC SUCCES ===\\n")
         """
         temp_dir = tempfile.mkdtemp()
         input_shp = os.path.join(temp_dir, "input.shp")
-        output_shp = os.path.join(temp_dir, "output.shp")
+        output_shp = os.path.join(temp_dir, "output.gpkg")
         script_path = os.path.join(temp_dir, "lisa_analysis.R")
 
         try:
@@ -404,7 +408,7 @@ cat("\\n=== ANALYSE LISA TERMINEE AVEC SUCCES ===\\n")
             )
             
             if not success:
-                return None, f"Erreur lors de l'export: {error_msg}"
+                return None, f"Erreur lors de l'export: {error_msg}", None
 
             # Créer le script R
             LISAAnalysisModule.write_r_script_to_file(
@@ -422,17 +426,17 @@ cat("\\n=== ANALYSE LISA TERMINEE AVEC SUCCES ===\\n")
             )
 
             if result.returncode != 0:
-                return None, f"Erreur R :\n{result.stderr}\n\nSortie stdout:\n{result.stdout}"
+                return None, f"Erreur R :\n{result.stderr}\n\nSortie stdout:\n{result.stdout}", None
 
             # Charger le résultat
             result_layer = QgsVectorLayer(output_shp, "LISA_Results", "ogr")
 
             if not result_layer.isValid():
-                return None, "Erreur lors du chargement des résultats"
+                return None, "Erreur lors du chargement des résultats", None
 
             return result_layer, result.stdout, temp_dir
 
         except subprocess.TimeoutExpired:
-            return None, "L'analyse a dépassé le temps limite (10 minutes)"
+            return None, "L'analyse a dépassé le temps limite (10 minutes)", None
         except Exception as e:
-            return None, f"Erreur: {str(e)}"
+            return None, f"Erreur: {str(e)}", None
