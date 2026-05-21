@@ -32,53 +32,53 @@ Réaliser une **Régression Géographiquement Pondérée (GWR)**, une **MGWR** o
 
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  1. UTILISATEUR                                             │
-│     └─> Sélection du modèle (GWR/MGWR/LISA)                │
-│     └─> Configuration des paramètres                        │
-│     └─> Validation                                          │
-└─────────────────────────────────────────────────────────────┘
+
+  1. UTILISATEUR                                             
+     └─> Sélection du modèle (GWR/MGWR/LISA)                
+     └─> Configuration des paramètres                        
+     └─> Validation                                          
+
                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│  2. PYTHON (gwr_plugin_r.py)                                │
-│     └─> Récupération de la couche QGIS                     │
-│     └─> Appel du module d'analyse approprié                │
-└─────────────────────────────────────────────────────────────┘
+
+  2. PYTHON (gwr_plugin_r.py)                                
+     └─> Récupération de la couche QGIS                     
+     └─> Appel du module d'analyse approprié                
+
                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│  3. MODULE D'ANALYSE (gwr/mgwr/lisa_analysis.py)           │
-│     └─> Création d'un répertoire temporaire                │
-│     └─> Mapping des noms de champs (limite 10 caractères)  │
-│     └─> Export de la couche en shapefile                   │
-│     └─> Génération du script R                             │
-└─────────────────────────────────────────────────────────────┘
+
+  3. MODULE D'ANALYSE (gwr/mgwr/lisa_analysis.py)           
+     └─> Création d'un répertoire temporaire                
+     └─> Mapping des noms de champs (limite 10 caractères)  
+     └─> Export de la couche en geopackage                   
+     └─> Génération du script R                             
+
                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│  4. EXÉCUTION R (subprocess)                                │
-│     └─> Lecture du shapefile                               │
-│     └─> Création d'une copie des données (sp_data_work)    │
-│     └─> Transformations sur la copie uniquement            │
-│     └─> Calculs statistiques                               │
-│     └─> Création de result_sf à partir des données         │
-│         originales non modifiées                            │
-│     └─> Ajout des résultats à result_sf                    │
-│     └─> Export du shapefile de résultats                   │
-└─────────────────────────────────────────────────────────────┘
+
+  4. EXÉCUTION R                                 
+     └─> Lecture du shapefile                              
+     └─> Création d'une copie des données (sp_data_work)    
+     └─> Transformations sur la copie uniquement            
+     └─> Calculs statistiques                               
+     └─> Création de result_sf à partir des données         
+         originales non modifiées                            
+     └─> Ajout des résultats à result_sf                    
+     └─> Export du gpkg de résultats                   
+
                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│  5. RETOUR À PYTHON                                         │
-│     └─> Chargement du shapefile de résultats               │
-│     └─> Création d'une QgsVectorLayer                      │
-│     └─> Nettoyage des fichiers temporaires                 │
-└─────────────────────────────────────────────────────────────┘
+
+  5. RETOUR À PYTHON                                         
+     └─> Chargement du shapefile de résultats               
+     └─> Création d'une QgsVectorLayer                      
+     └─> Nettoyage des fichiers temporaires                 
+
                           ↓
-┌─────────────────────────────────────────────────────────────┐
-│  6. AFFICHAGE DANS QGIS (process_results)                  │
-│     └─> Ajout de la nouvelle couche au projet              │
-│     └─> La couche originale reste intacte                  │
-│     └─> Affichage du message de succès                     │
-│     └─> Affichage des résultats détaillés                  │
-└─────────────────────────────────────────────────────────────┘
+
+  6. AFFICHAGE DANS QGIS                   
+     └─> Ajout de la nouvelle couche au projet              
+     └─> La couche originale reste intacte                  
+     └─> Affichage du message de succès                     
+     └─> Affichage des résultats détaillés                  
+
 ```
 
 ### Prérequis
